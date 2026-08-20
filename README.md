@@ -1,9 +1,23 @@
-# Jeferson Fit
+# Jeferson Fit — Supabase
 
-PWA simples para acompanhar alimentação, água, fome, treinos, peso e cintura.
+Versão com:
+- Login via Google
+- Dados sincronizados no Supabase
+- Refeições e macros
+- Água e fome no fim da tarde
+- Treinos
+- Peso, cintura e gordura corporal
+- Metas nutricionais
+- Histórico e gráficos
 
-## Publicação
-Suba estes arquivos na raiz do repositório `jeferson-fit` no GitHub e mantenha o GitHub Pages apontando para a branch `main` e pasta `/ (root)`.
+## Publicar
+Substitua os arquivos da raiz do repositório `jeferson-fit` por:
+- index.html
+- manifest.webmanifest
+- sw.js
+- README.md
 
-## Observação
-A versão atual salva os dados no navegador usando localStorage.
+O GitHub Pages continua em:
+https://searomjf.github.io/jeferson-fit/
+
+A chave embutida no frontend é a chave **publishable** do Supabase, que é própria para uso em aplicações cliente. A proteção dos dados depende das políticas RLS configuradas no banco.
