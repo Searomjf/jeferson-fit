@@ -1,16 +1,9 @@
-# Jefferson Fit
+# Jeferson Fit
 
-PWA pessoal e gratuita para registrar refeições, calorias, proteína, água, fome no fim da tarde, treinos, peso, cintura e histórico.
+PWA simples para acompanhar alimentação, água, fome, treinos, peso e cintura.
 
-## Rodar no computador
-Na pasta do projeto:
+## Publicação
+Suba estes arquivos na raiz do repositório `jeferson-fit` no GitHub e mantenha o GitHub Pages apontando para a branch `main` e pasta `/ (root)`.
 
-python -m http.server 8000
-
-Depois abra http://localhost:8000
-
-## Dados
-A versão 1 salva tudo no próprio navegador (localStorage). Use o botão de exportar backup JSON antes de limpar dados do navegador ou trocar de aparelho.
-
-## Próximo passo
-Conectar a um backend gratuito para sincronização em nuvem e login.
+## Observação
+A versão atual salva os dados no navegador usando localStorage.
