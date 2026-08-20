@@ -1,23 +1,22 @@
-# Jeferson Fit — Supabase
+# Jeferson Fit — Multiusuário
 
-Versão com:
-- Login via Google
-- Dados sincronizados no Supabase
-- Refeições e macros
-- Água e fome no fim da tarde
-- Treinos
-- Peso, cintura e gordura corporal
-- Metas nutricionais
-- Histórico e gráficos
+Versão com login Google e dados separados por conta no Supabase.
+
+## Novidade desta versão
+A aba **Plano** agora é personalizada por usuário:
+- cadastrar itens;
+- editar itens;
+- excluir itens;
+- organizar por seção e ordem;
+- cada conta enxerga somente o próprio plano.
+
+Também permanecem refeições, macros, água, fome, treinos, medidas, metas, histórico e gráficos.
 
 ## Publicar
-Substitua os arquivos da raiz do repositório `jeferson-fit` por:
-- index.html
-- manifest.webmanifest
-- sw.js
-- README.md
+Substitua na raiz do repositório:
+- `index.html`
+- `manifest.webmanifest`
+- `sw.js`
+- `README.md`
 
-O GitHub Pages continua em:
-https://searomjf.github.io/jeferson-fit/
-
-A chave embutida no frontend é a chave **publishable** do Supabase, que é própria para uso em aplicações cliente. A proteção dos dados depende das políticas RLS configuradas no banco.
+O cache da PWA foi atualizado para `jfit-v4`.

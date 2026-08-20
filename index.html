@@ -101,17 +101,36 @@
     <div class="row"><input id="goalKcal" type="number" value="1950" placeholder="kcal"><input id="goalProtein" type="number" value="140" placeholder="proteína g"><input id="goalCarbs" type="number" value="205" placeholder="carbo g"><input id="goalFat" type="number" value="60" placeholder="gordura g"><input id="goalWater" type="number" step="0.1" value="2.5" placeholder="água L"></div>
     <button class="primary" style="margin-top:10px" id="saveGoalsBtn">Salvar metas</button>
   </div>
+
   <div class="card">
-    <h3>Plano-base</h3>
-    <div class="list">
-      <div class="item"><div><b>Café</b><div class="small">3 ovos + banana + 20 g aveia • ou 3 ovos + pão + fruta</div></div></div>
-      <div class="item"><div><b>Almoço/Jantar</b><div class="small">150 g proteína + carboidrato + legumes/salada</div></div></div>
-      <div class="item"><div><b>Lanche</b><div class="small">Pão francês + 80–100 g frango + salada; +1 ovo se necessário</div></div></div>
-      <div class="item"><div><b>Albumina</b><div class="small">28 g = 93 kcal e 20 g de proteína</div></div></div>
-      <div class="item"><span>Arroz cozido</span><b>120 g</b></div><div class="item"><span>Macarrão cozido</span><b>120–130 g</b></div><div class="item"><span>Batata inglesa</span><b>200 g</b></div><div class="item"><span>Batata-doce</span><b>160–180 g</b></div>
+    <h3>Meu plano alimentar</h3>
+    <div class="small" style="margin-bottom:12px">Este plano pertence somente à sua conta. Cada usuário do Jeferson Fit mantém o próprio plano.</div>
+    <input id="planItemId" type="hidden">
+    <div class="row">
+      <select id="planSection">
+        <option>Café da manhã</option>
+        <option>Almoço</option>
+        <option>Lanche</option>
+        <option>Jantar</option>
+        <option>Pré-treino</option>
+        <option>Pós-treino</option>
+        <option>Equivalência</option>
+        <option>Observação</option>
+      </select>
+      <input id="planTitle" placeholder="Ex.: Opção 1">
+    </div>
+    <textarea id="planDescription" rows="3" style="margin-top:10px" placeholder="Ex.: 3 ovos + banana + 20 g de aveia"></textarea>
+    <div class="row" style="margin-top:10px">
+      <input id="planOrder" type="number" min="0" value="0" placeholder="Ordem">
+      <button class="primary" id="savePlanItemBtn">Adicionar ao plano</button>
+      <button class="secondary hidden" id="cancelPlanEditBtn">Cancelar edição</button>
     </div>
   </div>
-  <div class="note ok">Natação às 20h45: lanche completo à tarde; se houver fome, carboidrato leve por volta de 19h30; jantar após o treino.</div>
+
+  <div class="card">
+    <h3>Itens cadastrados</h3>
+    <div id="planItemsList" class="list"></div>
+  </div>
 </section>
 
 <section id="history" class="hidden">
@@ -169,7 +188,7 @@ async function ensureProfileAndGoals(){
   renderGoals();
 }
 
-async function refreshAll(){await Promise.all([loadToday(),loadProgress(),loadHistory()]);}
+async function refreshAll(){await Promise.all([loadToday(),loadProgress(),loadHistory(),loadPlanItems()]);}
 
 async function loadToday(){
   const [mealsR,logR,workR]=await Promise.all([
@@ -242,6 +261,36 @@ async function saveGoals(){
   const {error}=await sb.from('user_goals').insert(payload);if(error)return showError(error);goals=payload;renderGoals();await loadToday();alert('Metas atualizadas.');
 }
 
+
+async function loadPlanItems(){
+  if(!currentUser)return;
+  const {data,error}=await sb.from('plan_items').select('*').eq('user_id',currentUser.id).order('sort_order',{ascending:true}).order('created_at',{ascending:true});
+  if(error)return showError(error);
+  planItemsList.innerHTML=(data||[]).map(x=>`<div class="item"><div><span class="pill">${esc(x.section)}</span><div style="margin-top:6px"><b>${esc(x.title)}</b></div><div class="small" style="white-space:pre-wrap;margin-top:4px">${esc(x.description||'')}</div></div><div style="display:flex;gap:6px;align-items:flex-start"><button class="secondary" onclick='editPlanItem(${JSON.stringify(JSON.stringify(x))})'>Editar</button><button class="secondary" onclick="removePlanItem('${x.id}')">Excluir</button></div></div>`).join('')||'<div class="small">Seu plano ainda está vazio. Cadastre a primeira refeição ou orientação acima.</div>';
+}
+function resetPlanForm(){
+  planItemId.value='';planSection.value='Café da manhã';planTitle.value='';planDescription.value='';planOrder.value='0';
+  savePlanItemBtn.textContent='Adicionar ao plano';cancelPlanEditBtn.classList.add('hidden');
+}
+function editPlanItem(raw){
+  const x=JSON.parse(raw);planItemId.value=x.id;planSection.value=x.section;planTitle.value=x.title;planDescription.value=x.description||'';planOrder.value=x.sort_order||0;
+  savePlanItemBtn.textContent='Salvar alteração';cancelPlanEditBtn.classList.remove('hidden');window.scrollTo({top:document.getElementById('plan').offsetTop,behavior:'smooth'});
+}
+async function savePlanItem(){
+  if(!planTitle.value.trim())return alert('Digite um título para o item do plano.');
+  const payload={user_id:currentUser.id,section:planSection.value,title:planTitle.value.trim(),description:planDescription.value.trim()||null,sort_order:+planOrder.value||0};
+  let result;
+  if(planItemId.value) result=await sb.from('plan_items').update(payload).eq('id',planItemId.value).eq('user_id',currentUser.id);
+  else result=await sb.from('plan_items').insert(payload);
+  if(result.error)return showError(result.error);
+  resetPlanForm();await loadPlanItems();
+}
+async function removePlanItem(id){
+  if(!confirm('Excluir este item do seu plano alimentar?'))return;
+  const {error}=await sb.from('plan_items').delete().eq('id',id).eq('user_id',currentUser.id);
+  if(error)return showError(error);await loadPlanItems();
+}
+
 async function loadHistory(){
   if(!currentUser)return;const [m,w]=await Promise.all([
     sb.from('meals').select('*').eq('user_id',currentUser.id).order('eaten_at',{ascending:false}).limit(15),
@@ -254,8 +303,8 @@ async function loadHistory(){
 
 document.getElementById('googleLogin').onclick=loginGoogle;document.getElementById('logoutBtn').onclick=logout;
 document.getElementById('addMealBtn').onclick=addMeal;document.getElementById('saveDayBtn').onclick=saveDay;document.getElementById('addWorkoutBtn').onclick=addWorkout;
-document.getElementById('addProgressBtn').onclick=addProgress;document.getElementById('saveGoalsBtn').onclick=saveGoals;
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(b.dataset.tab).classList.remove('hidden');if(b.dataset.tab==='progress')loadProgress();if(b.dataset.tab==='history')loadHistory()});
+document.getElementById('addProgressBtn').onclick=addProgress;document.getElementById('saveGoalsBtn').onclick=saveGoals;document.getElementById('savePlanItemBtn').onclick=savePlanItem;document.getElementById('cancelPlanEditBtn').onclick=resetPlanForm;
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(b.dataset.tab).classList.remove('hidden');if(b.dataset.tab==='progress')loadProgress();if(b.dataset.tab==='plan')loadPlanItems();if(b.dataset.tab==='history')loadHistory()});
 initAuth();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
