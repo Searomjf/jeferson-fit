@@ -65,8 +65,15 @@
   <div class="card">
     <h3>Registrar refeição</h3>
     <div class="row"><select id="mealType"><option>Café da manhã</option><option>Almoço</option><option>Lanche</option><option>Jantar</option><option>Extra</option></select><input id="mealName" placeholder="Ex.: pão + frango + ovo"></div>
+    <div class="row" style="margin-top:10px">
+      <select id="planMealSelect"><option value="">Usar opção do meu plano (opcional)</option></select>
+      <button class="secondary" id="loadPlanMealBtn">Puxar do plano</button>
+    </div>
     <div class="row" style="margin-top:10px"><input id="mealKcal" type="number" placeholder="kcal"><input id="mealProtein" type="number" step="0.1" placeholder="proteína (g)"><input id="mealCarbs" type="number" step="0.1" placeholder="carbo (g)"><input id="mealFat" type="number" step="0.1" placeholder="gordura (g)"></div>
-    <button class="primary" style="margin-top:10px" id="addMealBtn">Adicionar refeição</button>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" id="addMealBtn">Adicionar refeição</button>
+      <button class="secondary" id="saveCurrentMealToPlanBtn">Salvar esta refeição no meu plano</button>
+    </div>
     <div id="mealList" class="list" style="margin-top:12px"></div>
   </div>
 
@@ -121,6 +128,12 @@
     </div>
     <textarea id="planDescription" rows="3" style="margin-top:10px" placeholder="Ex.: 3 ovos + banana + 20 g de aveia"></textarea>
     <div class="row" style="margin-top:10px">
+      <input id="planKcal" type="number" step="0.1" placeholder="kcal">
+      <input id="planProtein" type="number" step="0.1" placeholder="proteína (g)">
+      <input id="planCarbs" type="number" step="0.1" placeholder="carbo (g)">
+      <input id="planFat" type="number" step="0.1" placeholder="gordura (g)">
+    </div>
+    <div class="row" style="margin-top:10px">
       <input id="planOrder" type="number" min="0" value="0" placeholder="Ordem">
       <button class="primary" id="savePlanItemBtn">Adicionar ao plano</button>
       <button class="secondary hidden" id="cancelPlanEditBtn">Cancelar edição</button>
@@ -145,6 +158,7 @@ const SUPABASE_URL = "https://azsmxatdvhpjdziiehoi.supabase.co";
 const SUPABASE_KEY = "sb_publishable_ua5OPYHgBNbr4D68eYc3Ag_3L4T6kfK";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
+let planItemsCache = [];
 let goals = {kcal_target:1950,protein_target_g:140,carbs_target_g:205,fat_target_g:60,water_target_l:2.5};
 const today = () => {
   const d=new Date(), y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
@@ -266,19 +280,27 @@ async function loadPlanItems(){
   if(!currentUser)return;
   const {data,error}=await sb.from('plan_items').select('*').eq('user_id',currentUser.id).order('sort_order',{ascending:true}).order('created_at',{ascending:true});
   if(error)return showError(error);
-  planItemsList.innerHTML=(data||[]).map(x=>`<div class="item"><div><span class="pill">${esc(x.section)}</span><div style="margin-top:6px"><b>${esc(x.title)}</b></div><div class="small" style="white-space:pre-wrap;margin-top:4px">${esc(x.description||'')}</div></div><div style="display:flex;gap:6px;align-items:flex-start"><button class="secondary" onclick='editPlanItem(${JSON.stringify(JSON.stringify(x))})'>Editar</button><button class="secondary" onclick="removePlanItem('${x.id}')">Excluir</button></div></div>`).join('')||'<div class="small">Seu plano ainda está vazio. Cadastre a primeira refeição ou orientação acima.</div>';
+  planItemsCache=data||[];
+  planItemsList.innerHTML=planItemsCache.map(x=>`<div class="item"><div><span class="pill">${esc(x.section)}</span><div style="margin-top:6px"><b>${esc(x.title)}</b></div><div class="small" style="white-space:pre-wrap;margin-top:4px">${esc(x.description||'')}</div><div class="small" style="margin-top:4px">${Number(x.kcal||0)} kcal • ${Number(x.protein_g||0)} g proteína • ${Number(x.carbs_g||0)} g carbo • ${Number(x.fat_g||0)} g gordura</div></div><div style="display:flex;gap:6px;align-items:flex-start"><button class="secondary" onclick='editPlanItem(${JSON.stringify(JSON.stringify(x))})'>Editar</button><button class="secondary" onclick="removePlanItem('${x.id}')">Excluir</button></div></div>`).join('')||'<div class="small">Seu plano ainda está vazio. Cadastre a primeira refeição ou orientação acima.</div>';
+  refreshPlanMealSelect();
+}
+function refreshPlanMealSelect(){
+  if(!document.getElementById('planMealSelect'))return;
+  const type=mealType.value;
+  const relevant=planItemsCache.filter(x=>x.section===type || (type==='Extra' && !['Café da manhã','Almoço','Lanche','Jantar'].includes(x.section)));
+  planMealSelect.innerHTML='<option value="">Usar opção do meu plano (opcional)</option>'+relevant.map(x=>`<option value="${x.id}">${esc(x.title)} — ${esc(x.description||'')}</option>`).join('');
 }
 function resetPlanForm(){
-  planItemId.value='';planSection.value='Café da manhã';planTitle.value='';planDescription.value='';planOrder.value='0';
+  planItemId.value='';planSection.value='Café da manhã';planTitle.value='';planDescription.value='';planKcal.value='';planProtein.value='';planCarbs.value='';planFat.value='';planOrder.value='0';
   savePlanItemBtn.textContent='Adicionar ao plano';cancelPlanEditBtn.classList.add('hidden');
 }
 function editPlanItem(raw){
-  const x=JSON.parse(raw);planItemId.value=x.id;planSection.value=x.section;planTitle.value=x.title;planDescription.value=x.description||'';planOrder.value=x.sort_order||0;
+  const x=JSON.parse(raw);planItemId.value=x.id;planSection.value=x.section;planTitle.value=x.title;planDescription.value=x.description||'';planKcal.value=x.kcal||0;planProtein.value=x.protein_g||0;planCarbs.value=x.carbs_g||0;planFat.value=x.fat_g||0;planOrder.value=x.sort_order||0;
   savePlanItemBtn.textContent='Salvar alteração';cancelPlanEditBtn.classList.remove('hidden');window.scrollTo({top:document.getElementById('plan').offsetTop,behavior:'smooth'});
 }
 async function savePlanItem(){
   if(!planTitle.value.trim())return alert('Digite um título para o item do plano.');
-  const payload={user_id:currentUser.id,section:planSection.value,title:planTitle.value.trim(),description:planDescription.value.trim()||null,sort_order:+planOrder.value||0};
+  const payload={user_id:currentUser.id,section:planSection.value,title:planTitle.value.trim(),description:planDescription.value.trim()||null,sort_order:+planOrder.value||0,kcal:+planKcal.value||0,protein_g:+planProtein.value||0,carbs_g:+planCarbs.value||0,fat_g:+planFat.value||0};
   let result;
   if(planItemId.value) result=await sb.from('plan_items').update(payload).eq('id',planItemId.value).eq('user_id',currentUser.id);
   else result=await sb.from('plan_items').insert(payload);
@@ -289,6 +311,21 @@ async function removePlanItem(id){
   if(!confirm('Excluir este item do seu plano alimentar?'))return;
   const {error}=await sb.from('plan_items').delete().eq('id',id).eq('user_id',currentUser.id);
   if(error)return showError(error);await loadPlanItems();
+}
+function loadSelectedPlanMeal(){
+  const item=planItemsCache.find(x=>x.id===planMealSelect.value);
+  if(!item)return alert('Escolha uma opção do seu plano.');
+  mealName.value=item.title+(item.description?' — '+item.description:'');
+  mealKcal.value=item.kcal||0;mealProtein.value=item.protein_g||0;mealCarbs.value=item.carbs_g||0;mealFat.value=item.fat_g||0;
+}
+async function saveCurrentMealToPlan(){
+  if(!mealName.value.trim())return alert('Preencha a refeição primeiro.');
+  const title=prompt('Qual nome você quer dar para esta opção no plano?', mealName.value.trim());
+  if(!title)return;
+  const payload={user_id:currentUser.id,section:mealType.value,title:title.trim(),description:mealName.value.trim(),sort_order:0,kcal:+mealKcal.value||0,protein_g:+mealProtein.value||0,carbs_g:+mealCarbs.value||0,fat_g:+mealFat.value||0};
+  const {error}=await sb.from('plan_items').insert(payload);
+  if(error)return showError(error);
+  await loadPlanItems();alert('Refeição salva no seu plano.');
 }
 
 async function loadHistory(){
@@ -302,7 +339,7 @@ async function loadHistory(){
 }
 
 document.getElementById('googleLogin').onclick=loginGoogle;document.getElementById('logoutBtn').onclick=logout;
-document.getElementById('addMealBtn').onclick=addMeal;document.getElementById('saveDayBtn').onclick=saveDay;document.getElementById('addWorkoutBtn').onclick=addWorkout;
+document.getElementById('addMealBtn').onclick=addMeal;document.getElementById('saveCurrentMealToPlanBtn').onclick=saveCurrentMealToPlan;document.getElementById('loadPlanMealBtn').onclick=loadSelectedPlanMeal;document.getElementById('mealType').onchange=refreshPlanMealSelect;document.getElementById('saveDayBtn').onclick=saveDay;document.getElementById('addWorkoutBtn').onclick=addWorkout;
 document.getElementById('addProgressBtn').onclick=addProgress;document.getElementById('saveGoalsBtn').onclick=saveGoals;document.getElementById('savePlanItemBtn').onclick=savePlanItem;document.getElementById('cancelPlanEditBtn').onclick=resetPlanForm;
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(b.dataset.tab).classList.remove('hidden');if(b.dataset.tab==='progress')loadProgress();if(b.dataset.tab==='plan')loadPlanItems();if(b.dataset.tab==='history')loadHistory()});
 initAuth();

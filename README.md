@@ -1,22 +1,17 @@
-# Jeferson Fit — Multiusuário
+# Jeferson Fit — v5
 
-Versão com login Google e dados separados por conta no Supabase.
-
-## Novidade desta versão
-A aba **Plano** agora é personalizada por usuário:
-- cadastrar itens;
-- editar itens;
-- excluir itens;
-- organizar por seção e ordem;
-- cada conta enxerga somente o próprio plano.
-
-Também permanecem refeições, macros, água, fome, treinos, medidas, metas, histórico e gráficos.
+Novidades:
+- Itens do plano alimentar agora possuem kcal, proteína, carboidratos e gordura.
+- Na tela **Hoje**, ao escolher o tipo da refeição, é possível puxar uma opção já cadastrada no próprio plano.
+- Ao puxar uma opção, nome e macros são preenchidos automaticamente.
+- Também é possível montar uma refeição manualmente e clicar em **Salvar esta refeição no meu plano**.
+- Tudo continua separado por usuário via Supabase + RLS.
 
 ## Publicar
-Substitua na raiz do repositório:
-- `index.html`
-- `manifest.webmanifest`
-- `sw.js`
-- `README.md`
+Substitua na raiz do GitHub:
+- index.html
+- manifest.webmanifest
+- sw.js
+- README.md
 
-O cache da PWA foi atualizado para `jfit-v4`.
+Cache da PWA: `jfit-v5`.
