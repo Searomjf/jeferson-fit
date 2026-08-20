@@ -1,17 +1,12 @@
-# Jeferson Fit — v5
+# Jeferson Fit — v6
 
-Novidades:
-- Itens do plano alimentar agora possuem kcal, proteína, carboidratos e gordura.
-- Na tela **Hoje**, ao escolher o tipo da refeição, é possível puxar uma opção já cadastrada no próprio plano.
-- Ao puxar uma opção, nome e macros são preenchidos automaticamente.
-- Também é possível montar uma refeição manualmente e clicar em **Salvar esta refeição no meu plano**.
-- Tudo continua separado por usuário via Supabase + RLS.
+Correção do registro de refeições:
+- a interface continua mostrando "Café da manhã", "Almoço", "Lanche", "Jantar" e "Extra";
+- antes de salvar, o app converte esses nomes para os valores aceitos pelo banco;
+- corrigido o erro `meals_meal_type_check`, inclusive ao registrar refeições puxadas do plano.
 
-## Publicar
-Substitua na raiz do GitHub:
+Substitua no GitHub:
 - index.html
 - manifest.webmanifest
 - sw.js
 - README.md
-
-Cache da PWA: `jfit-v5`.

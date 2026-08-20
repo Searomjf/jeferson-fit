@@ -167,6 +167,21 @@ const today = () => {
 const dayStart = () => new Date(today()+'T00:00:00').toISOString();
 const dayEnd = () => new Date(today()+'T23:59:59.999').toISOString();
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const mealTypeToDb = (label) => ({
+  'Café da manhã':'cafe_da_manha',
+  'Almoço':'almoco',
+  'Lanche':'lanche',
+  'Jantar':'jantar',
+  'Extra':'extra'
+}[label] || label);
+const mealTypeFromDb = (value) => ({
+  'cafe_da_manha':'Café da manhã',
+  'almoco':'Almoço',
+  'lanche':'Lanche',
+  'jantar':'Jantar',
+  'extra':'Extra'
+}[value] || value);
+
 const showError = (e) => alert(e?.message || e || 'Ocorreu um erro.');
 
 async function loginGoogle(){
@@ -219,14 +234,14 @@ function renderToday(meals,log,workouts){
   kcalNow.textContent=Math.round(kcal);proteinNow.textContent=Math.round(protein);waterNow.textContent=water.toFixed(1).replace('.',',');hungerNow.textContent=log?.hunger_afternoon??'–';
   kcalBar.style.width=Math.min(100,kcal/goals.kcal_target*100)+'%';proteinBar.style.width=Math.min(100,protein/goals.protein_target_g*100)+'%';waterBar.style.width=Math.min(100,water/goals.water_target_l*100)+'%';
   waterInput.value=log?.water_l||'';hungerInput.value=log?.hunger_afternoon??'';
-  mealList.innerHTML=meals.map(m=>`<div class="item"><div><b>${esc(m.meal_type)}</b><div>${esc(m.name)}</div><div class="small">${Math.round(m.kcal)} kcal • ${m.protein_g} g proteína • ${m.carbs_g} g carbo • ${m.fat_g} g gordura</div></div><button class="secondary" onclick="removeMeal('${m.id}')">Remover</button></div>`).join('')||'<div class="small">Nenhuma refeição registrada hoje.</div>';
+  mealList.innerHTML=meals.map(m=>`<div class="item"><div><b>${esc(mealTypeFromDb(m.meal_type))}</b><div>${esc(m.name)}</div><div class="small">${Math.round(m.kcal)} kcal • ${m.protein_g} g proteína • ${m.carbs_g} g carbo • ${m.fat_g} g gordura</div></div><button class="secondary" onclick="removeMeal('${m.id}')">Remover</button></div>`).join('')||'<div class="small">Nenhuma refeição registrada hoje.</div>';
   workoutList.innerHTML=workouts.map(w=>`<div class="item"><div><b>${esc(w.workout_type)}</b><div class="small">${w.duration_minutes||0} min${w.distance_km?' • '+w.distance_km+' km':''}</div></div><button class="secondary" onclick="removeWorkout('${w.id}')">Remover</button></div>`).join('')||'<div class="small">Nenhum treino registrado hoje.</div>';
 }
 
 async function addMeal(){
   if(!mealName.value.trim())return alert('Digite o nome da refeição.');
   const {error}=await sb.from('meals').insert({
-    user_id:currentUser.id,meal_type:mealType.value,name:mealName.value.trim(),
+    user_id:currentUser.id,meal_type:mealTypeToDb(mealType.value),name:mealName.value.trim(),
     kcal:+mealKcal.value||0,protein_g:+mealProtein.value||0,carbs_g:+mealCarbs.value||0,fat_g:+mealFat.value||0
   });
   if(error)return showError(error);
