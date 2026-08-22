@@ -1,12 +1,13 @@
-# Jeferson Fit — v6
+# Jeferson Fit — v9
 
-Correção do registro de refeições:
-- a interface continua mostrando "Café da manhã", "Almoço", "Lanche", "Jantar" e "Extra";
-- antes de salvar, o app converte esses nomes para os valores aceitos pelo banco;
-- corrigido o erro `meals_meal_type_check`, inclusive ao registrar refeições puxadas do plano.
+Aplicativo web mobile-first para acompanhamento de alimentação, água, fome, treinos e evolução corporal.
 
-Substitua no GitHub:
-- index.html
-- manifest.webmanifest
-- sw.js
-- README.md
+## Destaques da v9
+
+- redesign Luminous Vitality com identidade verde-esmeralda e navegação móvel;
+- login Google com sessão persistente e dados multiusuário no Supabase;
+- refeições manuais ou reutilizadas do plano, com calorias e macros;
+- água registrada em ml, com atalhos de +250 ml e +500 ml;
+- treinos, progresso corporal, metas nutricionais e histórico;
+- correções acumuladas da v8 para tipos aceitos pelo banco;
+- PWA com cache `jfit-v9`.
