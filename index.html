@@ -38,7 +38,8 @@ main{padding-bottom:90px}.targets{display:grid;grid-template-columns:repeat(4,1f
 button.primary,button.secondary{min-height:46px;border-radius:14px;padding:10px 15px;font-weight:600}button.primary{background:var(--primary);color:#fff;border:0}button.secondary{background:#fff;color:var(--primary);border:1px solid var(--primary)}
 .login{min-height:100vh;display:grid;place-items:center}.loginBox{max-width:420px;width:100%;text-align:center;padding:34px}.google{width:100%}.note{padding:12px;border-radius:12px}.danger{background:#fef2f2;color:#991b1b}.avatar{width:42px;height:42px;border-radius:50%;object-fit:cover}.user{display:flex;gap:10px;align-items:center;min-width:0}.user>div{min-width:0;max-width:140px}#userName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 canvas{width:100%;height:220px;background:#fff;border-radius:14px}.card h3{font-size:21px;margin:0 0 16px;font-weight:600}
-@media(max-width:700px){.targets{grid-template-columns:1fr 1fr}.row{flex-direction:column;align-items:stretch}.wrap{padding:18px}.brand{min-height:52px;padding-bottom:4px;overflow:visible}.brand>div:first-child{min-width:0}.brand>div:first-child .sub{display:none}.user{flex:0 0 auto;gap:8px;overflow:visible}.user>div{max-width:none;flex:0 0 auto}#userName{display:none}.avatar{width:40px;height:40px;flex:0 0 40px;object-position:center}nav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(248,249,255,.96);padding:8px 12px max(8px,env(safe-area-inset-bottom));margin:0;border-top:1px solid var(--line)}nav button{font-size:12px}}
+.toast{position:fixed;left:50%;bottom:24px;z-index:100;transform:translate(-50%,20px);background:#123c30;color:#fff;padding:12px 18px;border-radius:999px;box-shadow:0 10px 30px rgba(18,28,42,.22);font-weight:600;opacity:0;pointer-events:none;transition:.2s ease;white-space:nowrap}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:700px){.targets{grid-template-columns:1fr 1fr}.row{flex-direction:column;align-items:stretch}.wrap{padding:18px}header .wrap{padding-top:8px;padding-bottom:10px}.brand{height:52px;min-height:52px;padding:0;overflow:visible}.brand>div:first-child{min-width:0}.brand>div:first-child .sub{display:none}.user{height:44px;flex:0 0 auto;gap:8px;overflow:visible}.user>div{max-width:none;flex:0 0 auto}#userName{display:none}.avatar{display:block;width:40px;height:40px;flex:0 0 40px;object-position:center}nav{position:static!important;display:grid;margin-top:8px;padding:0;background:transparent;border:0}nav button{font-size:12px}.toast{bottom:20px}}
 </style>
 </head>
 <body>
@@ -167,6 +168,7 @@ canvas{width:100%;height:220px;background:#fff;border-radius:14px}.card h3{font-
 </section>
 </main>
 </div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script>
 const SUPABASE_URL = "https://azsmxatdvhpjdziiehoi.supabase.co";
@@ -200,6 +202,11 @@ const workoutTypeToDb = (label) => ({'Musculação':'musculacao','Natação':'na
 const workoutTypeFromDb = (value) => ({'musculacao':'Musculação','natacao':'Natação','corrida':'Corrida','outro':'Outro'}[value] || value);
 
 const showError = (e) => alert(e?.message || e || 'Ocorreu um erro.');
+let toastTimer;
+function showToast(message){
+  toast.textContent=message;toast.classList.add('show');clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toast.classList.remove('show'),2200);
+}
 
 async function loginGoogle(){
   const redirectTo = 'https://searomjf.github.io/jeferson-fit/';
@@ -267,9 +274,14 @@ async function addMeal(){
 async function removeMeal(id){if(!confirm('Remover esta refeição?'))return;const {error}=await sb.from('meals').delete().eq('id',id).eq('user_id',currentUser.id);if(error)return showError(error);await loadToday();await loadHistory()}
 
 async function saveDay(){
+  const previousText=saveDayBtn.textContent;
+  saveDayBtn.disabled=true;saveDayBtn.textContent='Salvando…';
   const payload={user_id:currentUser.id,log_date:today(),water_l:(+waterInput.value||0)/1000,hunger_afternoon:hungerInput.value===''?null:+hungerInput.value,updated_at:new Date().toISOString()};
   const {error}=await sb.from('daily_logs').upsert(payload,{onConflict:'user_id,log_date'});
-  if(error)return showError(error);await loadToday();
+  if(error){saveDayBtn.disabled=false;saveDayBtn.textContent=previousText;return showError(error)}
+  await loadToday();
+  saveDayBtn.textContent='Salvo ✓';showToast('Água e fome salvas ✓');
+  setTimeout(()=>{saveDayBtn.disabled=false;saveDayBtn.textContent=previousText},1500);
 }
 function addWater(ml){waterInput.value=(+waterInput.value||0)+ml;saveDay()}
 
