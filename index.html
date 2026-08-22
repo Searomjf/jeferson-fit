@@ -101,7 +101,7 @@ canvas{width:100%;height:220px;background:#fff;border-radius:14px}.card h3{font-
 
   <div class="card">
     <h3>Registrar treino</h3>
-    <div class="row"><select id="trainingType"><option>Musculação</option><option>Natação</option><option>Corrida</option><option>Outro</option></select><input id="trainingMinutes" type="number" placeholder="Duração (min)"><input id="trainingDistance" type="number" step="0.01" placeholder="Distância (km, opcional)"></div>
+    <div class="row"><select id="trainingType"><option>Musculação</option><option>Natação</option><option>Corrida</option><option>Outro</option></select><input id="trainingDate" type="date" aria-label="Data do treino"><input id="trainingMinutes" type="number" placeholder="Duração (min)"><input id="trainingDistance" type="number" step="0.01" placeholder="Distância (km, opcional)"></div>
     <button class="primary" style="margin-top:10px" id="addWorkoutBtn">Adicionar treino</button>
     <div id="workoutList" class="list" style="margin-top:12px"></div>
   </div>
@@ -280,14 +280,17 @@ async function saveDay(){
   const {error}=await sb.from('daily_logs').upsert(payload,{onConflict:'user_id,log_date'});
   if(error){saveDayBtn.disabled=false;saveDayBtn.textContent=previousText;return showError(error)}
   await loadToday();
+  waterInput.value='';hungerInput.value='';
   saveDayBtn.textContent='Salvo ✓';showToast('Água e fome salvas ✓');
   setTimeout(()=>{saveDayBtn.disabled=false;saveDayBtn.textContent=previousText},1500);
 }
 function addWater(ml){waterInput.value=(+waterInput.value||0)+ml;saveDay()}
 
 async function addWorkout(){
-  const {error}=await sb.from('workouts').insert({user_id:currentUser.id,workout_type:workoutTypeToDb(trainingType.value),duration_minutes:+trainingMinutes.value||null,distance_km:+trainingDistance.value||null,source:'manual'});
-  if(error)return showError(error);trainingMinutes.value=trainingDistance.value='';await loadToday();await loadHistory();
+  const selectedDate=trainingDate.value||today();
+  const startedAt=selectedDate===today()?new Date().toISOString():new Date(`${selectedDate}T12:00:00`).toISOString();
+  const {error}=await sb.from('workouts').insert({user_id:currentUser.id,workout_type:workoutTypeToDb(trainingType.value),started_at:startedAt,duration_minutes:+trainingMinutes.value||null,distance_km:+trainingDistance.value||null,source:'manual'});
+  if(error)return showError(error);trainingMinutes.value=trainingDistance.value='';trainingDate.value=today();await loadToday();await loadHistory();showToast('Treino registrado ✓');
 }
 async function removeWorkout(id){if(!confirm('Remover este treino?'))return;const {error}=await sb.from('workouts').delete().eq('id',id).eq('user_id',currentUser.id);if(error)return showError(error);await loadToday();await loadHistory()}
 
@@ -387,6 +390,7 @@ document.getElementById('googleLogin').onclick=loginGoogle;document.getElementBy
 document.getElementById('addMealBtn').onclick=addMeal;document.getElementById('saveCurrentMealToPlanBtn').onclick=saveCurrentMealToPlan;document.getElementById('loadPlanMealBtn').onclick=loadSelectedPlanMeal;document.getElementById('mealType').onchange=refreshPlanMealSelect;document.getElementById('saveDayBtn').onclick=saveDay;document.getElementById('addWorkoutBtn').onclick=addWorkout;
 document.getElementById('addProgressBtn').onclick=addProgress;document.getElementById('saveGoalsBtn').onclick=saveGoals;document.getElementById('savePlanItemBtn').onclick=savePlanItem;document.getElementById('cancelPlanEditBtn').onclick=resetPlanForm;
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(b.dataset.tab).classList.remove('hidden');if(b.dataset.tab==='progress')loadProgress();if(b.dataset.tab==='plan')loadPlanItems();if(b.dataset.tab==='history')loadHistory()});
+trainingDate.value=today();trainingDate.max=today();
 initAuth();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
